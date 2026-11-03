@@ -90,4 +90,34 @@ namespace srtops{ // string ops
         }
         return output;
     }
+
+    void line_split(vector<string>* split_data,vector<string> delimiters,vector<vector<string>>* output){
+        vector<string> current;
+        for(string value : *split_data){
+            bool found_delim = false;
+            for(string c : delimiters){
+                if(value.find(c) != string::npos){
+                    output->push_back(current);
+                    current.clear();
+                    found_delim = true;
+                    break;
+                }
+            }
+            if(!found_delim){
+                current.push_back(value);
+            }
+        }
+    }
+
 }
+
+const string keywords[] = {
+    "#", // function
+    "@", // config 
+    ".", // lable
+    "%", // const,
+};
+/*
+
+
+*/

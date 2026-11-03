@@ -7,6 +7,8 @@
 #include<vector>
 #include<array>
 #include <type_traits>
+#include <map>
+#include <functional>
 
 using std::cout;
 using std::endl;
@@ -21,5 +23,6 @@ using std::uint32_t;
 using std::uint64_t;
 using std::vector;
 using std::array;
+using std::map;
 
 

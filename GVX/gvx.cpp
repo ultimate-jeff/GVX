@@ -11,12 +11,85 @@ using std::endl;
 
 
 */
-namespace asmfuncs{
-    void fill(int pos ,vector<string> args,vector<string>& data){
+namespace logger{
+    struct Entry{
+        string data;
+        int8_t level;
+    };
+
+    vector<Entry> errors;
+
+    inline
+    void error(string msg,int8_t level){
+        Entry full_msg;
+        full_msg.data = msg;
+        full_msg.level = level;
+        errors.push_back(full_msg);
+    }
+    inline
+    void error(Entry entry){
+        errors.push_back(entry);
+    }
+} // namespace logger
+
+
+namespace comp{
+
+    struct Confic{
+        map<string,string> data;
+
+        inline
+        bool has(const string& key){
+            return data.find(key) != data.end();
+        }
+        inline
+        string get(const string& key,const string& defalt){
+            auto value = data.find(key);
+            if(value == data.end()){
+                return defalt;
+            }
+            return value->second;
+        }
+        inline
+        void set(const string& key,string value){
+            data[key] = value;
+        }
+    };
+
+    struct Context{
+        Confic* config;
+        map<string,int64_t>* consts;
+        map<string,size_t>* labels;
+        size_t location;
+        size_t line_num;
+        vector<string>* data;
+        vector<vector<string>>* parse_data;
+        string* raw;
+    };
+
+    void fill(Context context){
 
     }
-    void _const(int pos ,vector<string> args,vector<string>& data){
+    void _const(Context context){
 
+    }
+
+    const string comp_calls[] = {
+        "fill",
+        "const",
+    };
+
+    const array<std::function<void(Context)>,16> func_table = {
+        fill,
+        _const,
+    };
+
+    std::function<void(Context)> get_function(string token){
+        for(int i = 0 ; i < (sizeof(comp_calls)/sizeof(string)) ; i++){
+            if(comp_calls[i] == token){
+                return func_table[i];
+            }
+        }
     }
 
 } // namespace asmfuncs
@@ -39,9 +112,9 @@ void assemble(vector<string>& args){
         }
         cout << "obtained file. comensing assembly " << endl;
         vector<string> data = srtops::split(file," ,\n","#.@;");
-        for(int i = 0 ; i < data.size();i++){
-            cout << "{" << data.at(i) << "}" << endl;
-        }
+        vector<vector<string>> parse;
+        srtops::line_split(&data,{";"},&parse);
+        
 
     }
     catch(const std::exception& e){
@@ -82,3 +155,22 @@ int main(int argc,char* argv[]){
 
     
 }
+
+/*
+```
+#if 10 != 3 .true;
+.false;
+
+.true;
+```
+->
+```
+sub 10 3;
+cmp 3 !=;
+jmp .true;
+.false;
+
+.true;
+```
+
+*/
