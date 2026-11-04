@@ -1,7 +1,46 @@
 #pragma once
 #include"includes.h"
 
+namespace logger{
+    struct Entry{
+        string data;
+        int8_t level;
+    };
+
+    vector<Entry> errors;
+
+    inline
+    void error(Entry entry){
+        if(entry.level >= 10){
+            cout << "fatal error" << endl;
+            std::exit(-1);
+        }
+        errors.push_back(entry);
+    }
+    inline
+    void error(string msg,int8_t level){
+        Entry full_msg;
+        full_msg.data = msg;
+        full_msg.level = level;
+        error(full_msg);
+    }
+
+} // namespace logger
+
 namespace fops{
+
+struct Header{ // fill the rest in later
+    char verifier[4] = {'g','v','x',0};
+    uint32_t size;
+    char isa[8] = {'g','3','2',0};
+};
+
+struct Gvx_file{ // fill this in
+    Header header;
+    vector<uint8_t> data;
+    int8_t status;
+};
+
 
 bool open_file(string path,string* data){
     std::ifstream file(path);
@@ -50,9 +89,24 @@ bool read_bin(string& path,vector<T>* data){
 }
 
 
-} // namespace file ops
+} // namespace fops
 
 namespace srtops{ // string ops
+
+    bool remove_coments(string& raw,string& new_str){
+        bool removing = false;
+        for(size_t i = 0 ; i < raw.size() ; i++){
+            char value = raw[i];
+            if(!removing){
+                new_str += value;
+            }
+            if(value == '~'){
+                removing = true;
+            }else if(remove && value == '\n'){
+                removing = false;
+            }
+        }
+    }
 
     int index(vector<string>* data,string desired_string){
         for(int i = 0 ; i < data->size() ; i++){
@@ -61,6 +115,14 @@ namespace srtops{ // string ops
             }
         }
         return -1;
+    }
+    bool contains(const vector<string>& data, const string& value){
+        for(string elm : data){
+            if(elm == value){
+                return true;
+            }
+        }
+        return false;
     }
 
     static inline void _split_flush(string& current,vector<string>& output){
@@ -110,6 +172,43 @@ namespace srtops{ // string ops
     }
 
 }
+
+namespace comp{
+
+    struct Parse_pos{
+        size_t pos[2];
+        size_t parse1_pos[2];
+    };
+
+    struct Context{
+        int8_t phase;
+        Parse_pos pos;
+        string raw;
+        vector<string> parse0;
+        vector<vector<string>> parse1;
+    };
+
+} // namspace comp
+
+enum status_map{
+    unknown_error = -127,
+    
+    io_error = -6,
+    bad_config = -5,
+    already_exsists = -4,
+    out_of_range = -3,
+    invalid_arg = -2,
+    error = -1 ,
+    Null = 0,
+    good = 1,
+    succsess = 2,
+    ready = 3,
+    busy = 4,
+    complete = 5,
+    initalizing = 6,
+    pending = 7,
+    end = 127
+};
 
 const string keywords[] = {
     "#", // function
