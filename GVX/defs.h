@@ -1,6 +1,34 @@
 #pragma once
 #include"includes.h"
 
+
+enum status_map{
+    unknown_error = -127,
+    
+    io_error = -6,
+    bad_config = -5,
+    already_exsists = -4,
+    out_of_range = -3,
+    invalid_arg = -2,
+    error = -1 ,
+    None = 0,
+    good = 1,
+    succsess = 2,
+    ready = 3,
+    busy = 4,
+    complete = 5,
+    initalizing = 6,
+    pending = 7,
+    end = 127
+};
+
+const string keywords[] = {
+    "#", // function
+    "@", // config 
+    ".", // lable
+    "%", // const,
+};
+
 namespace logger{
     struct Entry{
         string data;
@@ -25,7 +53,7 @@ namespace logger{
         error(full_msg);
     }
 
-} // namespace logger
+}; // namespace logger
 
 namespace fops{
 
@@ -89,9 +117,9 @@ bool read_bin(string& path,vector<T>* data){
 }
 
 
-} // namespace fops
+}; // namespace fops
 
-namespace srtops{ // string ops
+namespace strops{ // string ops
 
     bool remove_coments(string& raw,string& new_str){
         bool removing = false;
@@ -102,20 +130,22 @@ namespace srtops{ // string ops
             }
             if(value == '~'){
                 removing = true;
-            }else if(remove && value == '\n'){
+            }else if(removing && value == '\n'){
                 removing = false;
             }
         }
+        return !removing; // if it is removing at the end there was a coment that was not closed
     }
 
     int index(vector<string>* data,string desired_string){
-        for(int i = 0 ; i < data->size() ; i++){
+        for(size_t i = 0 ; i < data->size() ; i++){
             if(data->at(i) == desired_string){
                 return i;
             }
         }
         return -1;
     }
+
     bool contains(const vector<string>& data, const string& value){
         for(string elm : data){
             if(elm == value){
@@ -171,7 +201,7 @@ namespace srtops{ // string ops
         }
     }
 
-}
+}; // namespace strops
 
 namespace comp{
 
@@ -188,34 +218,8 @@ namespace comp{
         vector<vector<string>> parse1;
     };
 
-} // namspace comp
+}; // namspace comp
 
-enum status_map{
-    unknown_error = -127,
-    
-    io_error = -6,
-    bad_config = -5,
-    already_exsists = -4,
-    out_of_range = -3,
-    invalid_arg = -2,
-    error = -1 ,
-    Null = 0,
-    good = 1,
-    succsess = 2,
-    ready = 3,
-    busy = 4,
-    complete = 5,
-    initalizing = 6,
-    pending = 7,
-    end = 127
-};
-
-const string keywords[] = {
-    "#", // function
-    "@", // config 
-    ".", // lable
-    "%", // const,
-};
 /*
 
 

@@ -2,9 +2,6 @@
 #include"config.h"
 #include"defs.h"
 
-using std::string;
-using std::cout;
-using std::endl;
 /*
 # is compiler function
 @ is compiler config 
@@ -15,7 +12,13 @@ using std::endl;
 inline
 int8_t assemble(string& raw,vector<uint8_t>& output){
     comp::Context context;
+
     strops::remove_coments(raw,context.raw); // i was working on constructig the context and begening parsing 
+
+    cout << context.raw << endl;
+
+
+    return status_map::good;
 }
 
 int8_t assemble(vector<string>& args){
@@ -39,9 +42,10 @@ int8_t assemble(vector<string>& args){
         cout << "gasm -a <input_file> <output_file>" << endl;
         cout << "gasm -help for help\n-----" << endl;
         std::cerr << e.what() << '\n';
+        return status_map::error;
     }
     
-
+    return status_map::good;
 }
 
 
