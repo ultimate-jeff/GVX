@@ -1,0 +1,11 @@
+~ comment ~
+
+@isa test_isa;
+
+jmpu .start;
+#fill 0 100;
+.start;
+lrv 0 10;
+push_sf %jeff;
+
+

@@ -1,5 +1,6 @@
 #pragma once
 #include"includes.h"
+#include"config.h"
 
 
 enum status_map{
@@ -29,31 +30,101 @@ const string keywords[] = {
     "%", // const,
 };
 
-namespace logger{
-    struct Entry{
-        string data;
-        int8_t level;
+struct Token {
+    string data;
+    size_t source_line = 0;
+
+    Token& operator=(const std::string& str) {
+        data = str;
+        return *this;
+    }
+    Token& operator=(char c) {
+        data = c;
+        return *this;
+    }
+
+    char& operator[](size_t index) { return data[index]; }
+    const char& operator[](size_t index) const { return data[index]; }
+
+    char& at(size_t index) { return data.at(index); }
+    const char& at(size_t index) const { return data.at(index); }
+
+    size_t size() const { return data.size(); }
+    size_t length() const { return data.length(); }
+
+    bool empty() const { return data.empty(); }
+    void clear() { data.clear(); }
+
+    void push_back(char c) { data.push_back(c); }
+
+    operator const std::string&() const { return data; }
+    operator std::string&() { return data; }
+};
+
+namespace comp{
+
+    struct Context{
+        int8_t phase;
+        Token raw;
+        vector<Token> raw_parse;
+        vector<Token> parse0;
+        vector<vector<Token>> parse1;
+        vector<uint8_t> output;
     };
 
+}; // namspace comp
+
+class Logger{
+public:
+    struct Entry{
+        string data;
+        float level;
+        size_t line;
+
+        size_t where(){
+            return line;
+        }
+    };
+
+
     vector<Entry> errors;
+    comp::Context* context;
+
+    Logger(comp::Context* context_ptr){
+        context = context_ptr;
+    }
+
+    size_t get_line(vector<Token>& token_snipit){
+        return token_snipit[0].source_line;
+    }
+
+    void exit(){
+        cout << "----------------" << endl;
+        for(Entry e : errors){
+            cout << "level " << e.level << "error at " << e.where() << " -> " << e.data << end;
+        }
+        cout << "----------------" << endl;
+    }
 
     inline
     void error(Entry entry){
-        if(entry.level >= 10){
+        if(entry.level >= 1.0){
             cout << "fatal error" << endl;
-            std::exit(-1);
+            exit();
         }
         errors.push_back(entry);
     }
     inline
-    void error(string msg,int8_t level){
+    void error(string msg,float level,size_t line=0){
         Entry full_msg;
         full_msg.data = msg;
         full_msg.level = level;
+        full_msg.line = line;
         error(full_msg);
     }
 
-}; // namespace logger
+}; // class logger
+
 
 namespace fops{
 
@@ -121,60 +192,75 @@ bool read_bin(string& path,vector<T>* data){
 
 namespace strops{ // string ops
 
-    bool remove_coments(string& raw,string& new_str){
+    bool remove_coments(vector<Token>& raw,vector<Token>& new_token){
         bool removing = false;
         for(size_t i = 0 ; i < raw.size() ; i++){
-            char value = raw[i];
-            if(!removing){
-                new_str += value;
+            Token token = raw[i];
+            if(token.data == COMENT_SYMBOLE){
+                removing = !removing;
             }
-            if(value == '~'){
-                removing = true;
-            }else if(removing && value == '\n'){
-                removing = false;
+            if(!removing && token.data != COMENT_SYMBOLE){
+                new_token.push_back(token);
             }
         }
         return !removing; // if it is removing at the end there was a coment that was not closed
     }
 
-    int index(vector<string>* data,string desired_string){
-        for(size_t i = 0 ; i < data->size() ; i++){
-            if(data->at(i) == desired_string){
+    int index(vector<Token>* tokens,string desired){
+        for(size_t i = 0 ; i < tokens->size() ; i++){
+            if(tokens->at(i).data == desired){
                 return i;
             }
         }
         return -1;
     }
 
-    bool contains(const vector<string>& data, const string& value){
-        for(string elm : data){
-            if(elm == value){
+    bool contains(const vector<Token>& tokens, const string& value){
+        for(Token elm : tokens){
+            if(elm.data == value){
                 return true;
             }
         }
         return false;
     }
 
-    static inline void _split_flush(string& current,vector<string>& output){
+    static inline void _split_flush(string& current,vector<Token>& output,size_t line_num){
         if(!current.empty()){
-            output.push_back(current);
+            Token t;
+            t.data = current;
+            t.source_line = line_num;
+            output.push_back(t);
             current.clear();
         }
     }
 
-    vector<string> split(const string& data, const string& delimiters,const string& keepers){
-        vector<string> output;
-        string current;
-        for (char c : data) {
+    vector<Token> split(Token& data, const string& delimiters,const string& keepers){
+        vector<Token> output;
+        Token current;
+        size_t line = data.source_line;
+        for (char c : data.data) {
             if(delimiters.find(c) != string::npos){
-                _split_flush(current,output);
+                _split_flush(current,output,line);
+                if(c == '\n'){
+                    line++;
+                }
             }
             else if(keepers.find(c) != string::npos){
-                _split_flush(current,output);
-                output.push_back(string(1,c));
+                _split_flush(current,output,line);
+                Token t;
+                t = string(1,c);
+                t.source_line = line;
+                output.push_back(t);
+                if(c == '\n'){
+                    line++;
+                }
             }
             else{
+                if(c == '\n'){
+                    line++;
+                }
                 current.push_back(c);
+
             }
         }
         if(!current.empty()){
@@ -183,13 +269,13 @@ namespace strops{ // string ops
         return output;
     }
 
-    void line_split(vector<string>* split_data,vector<string> delimiters,vector<vector<string>>* output){
-        vector<string> current;
-        for(string value : *split_data){
+    void line_split(vector<Token>& split_data,vector<string> delimiters,vector<vector<Token>>& output){
+        vector<Token> current;
+        for(Token value : split_data){
             bool found_delim = false;
             for(string c : delimiters){
-                if(value.find(c) != string::npos){
-                    output->push_back(current);
+                if(value.data.find(c) != string::npos){
+                    output.push_back(current);
                     current.clear();
                     found_delim = true;
                     break;
@@ -203,22 +289,6 @@ namespace strops{ // string ops
 
 }; // namespace strops
 
-namespace comp{
-
-    struct Parse_pos{
-        size_t pos[2];
-        size_t parse1_pos[2];
-    };
-
-    struct Context{
-        int8_t phase;
-        Parse_pos pos;
-        string raw;
-        vector<string> parse0;
-        vector<vector<string>> parse1;
-    };
-
-}; // namspace comp
 
 /*
 

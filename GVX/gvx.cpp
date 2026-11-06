@@ -2,33 +2,54 @@
 #include"config.h"
 #include"defs.h"
 
-/*
-# is compiler function
-@ is compiler config 
-
-
+/* 
+this dose the first pass and parses and removes coments
 */
+inline 
+void parse0(comp::Context& context,Logger& logger){
+    context.raw_parse = strops::split(context.raw,"\n ",PARSE_KEEPERS);
+    const bool comments_removed = strops::remove_coments(context.raw_parse,context.parse0);
+    if(comments_removed){
+        logger.error("unclosed comment",1,context.raw.size());
+    }
+}
+
+inline
+void parse1(comp::Context& context,Logger& logger){
+    strops::line_split(context.parse0,{";"},context.parse1);
+
+}
 
 inline
 int8_t assemble(string& raw,vector<uint8_t>& output){
     comp::Context context;
+    context.raw = raw;
+    Logger logger(&context);
 
-    strops::remove_coments(raw,context.raw); // i was working on constructig the context and begening parsing 
+    parse0(context,logger);
 
-    cout << context.raw << endl;
+    parse1(context,logger);
+
+    for(vector<Token> t2 : context.parse1){
+        for(Token t : t2){
+            cout << '{' << t.data << '}';
+        }
+        cout << endl;
+    }
 
 
     return status_map::good;
 }
 
-int8_t assemble(vector<string>& args){
+int8_t assemble_from_args(vector<string>& args){
     // gasm -a <input> <output>
     //      i0    i1     i2
     cout << "assembling" << endl;
     try{
         string file;
         if(!fops::open_file(args[1],&file)){
-            logger::error("could not find file",10);
+           cout << "could not open file" << endl;
+           std::exit(-1);
         }
         vector<uint8_t> output;
         int8_t status = assemble(file,output);
@@ -53,14 +74,14 @@ int main(int argc,char* argv[]){
     // commmand for mat ./assembler -a file output
     vector<string> args(argv + 1,argv + argc);
     if(args.empty()){
-        std::cerr << "usage gasm -a <input> <output>" << endl;
+        std::cerr << "usage gvx -a <input> <output>" << endl;
         return 1;
     }
 
     string command = args[0];
     if(command == "-a"){
         // assemble
-        assemble(args);
+        assemble_from_args(args);
     }
     else if(command == "-d"){
         // disassemble
